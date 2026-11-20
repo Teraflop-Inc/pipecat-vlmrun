@@ -1,0 +1,80 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pipecat-vlmrun"
+version = "0.1.0"
+description = "VLM Run vision models for Pipecat: chat on camera frames and realtime per-frame detection, segmentation, pose and OCR"
+readme = "README.md"
+license = "BSD-2-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "VLM Run" }]
+keywords = ["pipecat", "vlm run", "vision", "vlm", "realtime", "object detection", "pose", "ocr"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+dependencies = [
+    "pipecat-ai[openai]>=1.16.0",
+    "pillow>=10.0.0",
+    "websockets>=13.0",
+]
+
+[project.optional-dependencies]
+examples = [
+    "pipecat-ai[cartesia,deepgram,runner,silero,webrtc]>=1.16.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://vlm.run"
+Documentation = "https://docs.vlm.run/gateway/introduction"
+Repository = "https://github.com/vlm-run/pipecat-vlmrun"
+Issues = "https://github.com/vlm-run/pipecat-vlmrun/issues"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.6",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pipecat_vlmrun"]
+
+[tool.uv]
+# onnxruntime, which pipecat-ai pulls in, has no Intel Mac wheel from 1.24 on. This package never
+# loads it, so Intel Macs get the last version that has one. Other platforms are unaffected.
+override-dependencies = [
+    "onnxruntime==1.23.2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "D"]
+ignore = ["D100", "D104", "D105", "D107"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+"examples/*" = ["D", "E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+markers = ["live: calls the real VLM Run gateway and spends credit; needs VLMRUN_API_KEY"]
+addopts = "-m 'not live'"

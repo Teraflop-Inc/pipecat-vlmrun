@@ -1,0 +1,145 @@
+---
+title: "VLM Run"
+sidebarTitle: "VLM Run"
+description: "Vision models from the VLM Run gateway: a chat model that can see, and realtime per-frame detection, segmentation, pose and OCR on a bot's camera."
+---
+
+{/*
+  Draft of the service page for https://github.com/pipecat-ai/docs, to submit as
+  api-reference/server/services/vision/vlmrun.mdx once this package is public.
+  The same PR adds a row to supported-services.mdx:
+    Service: VLM Run   Setup: `uv add pipecat-vlmrun`   Maintainer: Community
+  and registers the page in docs.json.
+*/}
+
+import { CommunityMaintained } from "/snippets/community-maintained.mdx";
+
+<CommunityMaintained
+  maintainer="vlm-run"
+  maintainerUrl="https://github.com/vlm-run"
+  repo="https://github.com/vlm-run/pipecat-vlmrun"
+/>
+
+## Overview
+
+`pipecat-vlmrun` connects Pipecat to the [VLM Run](https://vlm.run) gateway, which serves
+vision models behind one API key.
+
+- `VLMRunLLMService` is an LLM service for vision-language models. Images in the LLM context
+  are sent to the model.
+- `VLMRunRealtimeProcessor` runs a per-frame model on the bot's camera over a websocket and
+  pushes a `VLMRunResultFrame` for each frame read: object boxes, instance masks, body or hand
+  keypoints, text lines, or a one-line description.
+
+<CardGroup cols={2}>
+  <Card title="Source Repository" icon="github" href="https://github.com/vlm-run/pipecat-vlmrun">
+    Source code, examples, and issues
+  </Card>
+  <Card title="PyPI Package" icon="cube" href="https://pypi.org/project/pipecat-vlmrun/">
+    The `pipecat-vlmrun` package on PyPI
+  </Card>
+  <Card title="VLM Run Gateway Docs" icon="book" href="https://docs.vlm.run/gateway/introduction">
+    Models, methods, limits, and pricing
+  </Card>
+</CardGroup>
+
+## Installation
+
+This is a community-maintained package distributed separately from `pipecat-ai`:
+
+```bash
+uv add pipecat-vlmrun
+```
+
+## Prerequisites
+
+- A VLM Run account and API key from [app.vlm.run](https://app.vlm.run)
+- `VLMRUN_API_KEY` set in your environment
+
+## Configuration
+
+### VLMRunLLMService
+
+<ParamField path="api_key" type="str" required>
+  VLM Run API key.
+</ParamField>
+
+<ParamField path="base_url" type="str" default="https://gateway.vlm.run/v1/openai">
+  The gateway's OpenAI-compatible endpoint.
+</ParamField>
+
+<ParamField path="settings" type="VLMRunLLMService.Settings">
+  Runtime settings, the same fields as `OpenAILLMService.Settings`. The model defaults to
+  `qwen/qwen3.8-27b`.
+</ParamField>
+
+### VLMRunRealtimeProcessor
+
+<ParamField path="api_key" type="str" required>
+  VLM Run API key.
+</ParamField>
+
+<ParamField path="model" type="str" required>
+  A gateway model that streams over the realtime socket, for example `roboflow/rfdetr-large`.
+</ParamField>
+
+<ParamField path="method" type="str">
+  The model's method, for example `detect`, `segment`, `pose` or `ocr`.
+</ParamField>
+
+<ParamField path="method_params" type="dict">
+  Arguments for the method, for example `{"prompt": "person"}` for `facebook/sam3.1`.
+</ParamField>
+
+<ParamField path="prompt" type="str">
+  Text sent with every frame, for the realtime chat models.
+</ParamField>
+
+<ParamField path="video_source" type="str">
+  Only read frames from this transport source, for example `"camera"`.
+</ParamField>
+
+<ParamField path="draw" type="bool" default="False">
+  Also push each frame with its result drawn on it, as an `OutputImageRawFrame`.
+</ParamField>
+
+<ParamField path="max_fps" type="float">
+  Upper bound on frames sent per second.
+</ParamField>
+
+## Usage
+
+```python
+import os
+
+from pipecat.pipeline.pipeline import Pipeline
+from pipecat_vlmrun import VLMRunRealtimeProcessor
+
+detector = VLMRunRealtimeProcessor(
+    api_key=os.environ["VLMRUN_API_KEY"],
+    model="roboflow/rfdetr-large",
+    video_source="camera",
+    draw=True,
+)
+
+pipeline = Pipeline([transport.input(), detector, transport.output()])
+```
+
+```python
+from pipecat_vlmrun import VLMRunLLMService
+
+llm = VLMRunLLMService(
+    api_key=os.environ["VLMRUN_API_KEY"],
+    settings=VLMRunLLMService.Settings(
+        model="qwen/qwen3.8-27b",
+        system_instruction="You are a helpful assistant in a voice conversation.",
+    ),
+)
+```
+
+See the [repository](https://github.com/vlm-run/pipecat-vlmrun) for the full README and
+runnable examples.
+
+## Compatibility
+
+Tested with Pipecat v1.16.0.
