@@ -154,12 +154,23 @@ async def test_a_refused_session_is_not_retried(gateway):
     assert run.sink.camera == 3
 
 
-async def test_a_long_retry_after_is_reported_not_waited_out(gateway):
-    gateway.refuse = ("model is starting up. Retry in about 240 s.", 1013, 240.0)
+async def test_waits_for_a_model_that_is_starting_up(gateway):
+    gateway.refuse = ("roboflow/rfdetr-large is starting up. Retry in about 240 s.", 1013, 240.0)
+    gateway.refuse_for = 2
     proc = processor(gateway)
-    run = await run_pipeline(proc, [camera_frame()])
-    assert gateway.connections == 1
-    assert "starting up" in run.errors[0]
+    run = await run_pipeline(proc, [camera_frame() for _ in range(3)], gap=0.1)
+    assert run.errors == []
+    assert gateway.connections == 3
+    assert len(run.sink.results) >= 1
+
+
+def test_the_gateways_retry_hint_sets_the_wait():
+    from pipecat_vlmrun import realtime
+
+    backoff = realtime.__dict__["_real_backoff"]
+    assert backoff(1, 240) == 240
+    assert backoff(1, 9999) == 300, "one wait is capped"
+    assert [backoff(n, None) for n in (1, 2, 3, 4, 5, 6)] == [0.5, 1, 2, 4, 8, 8]
 
 
 async def test_a_bad_key_is_not_retried(gateway):

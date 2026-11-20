@@ -47,8 +47,8 @@ _CLOSE_REFUSED = 1008
 # The reason the gateway gives when a session reaches its spend ceiling. Reopening would spend
 # past a limit the account set, so the processor stops.
 _REASON_SPENT = "spent"
-# A refusal that asks for a longer wait than this is reported, not waited out.
-_MAX_RETRY_AFTER = 30.0
+# The longest single wait. A model that is starting up asks for about 240 seconds.
+_MAX_RETRY_AFTER = 300.0
 _MAX_BACKOFF = 8.0
 _JPEG_FALLBACK_QUALITIES = (60, 40)
 
@@ -134,9 +134,11 @@ class VLMRunRealtimeProcessor(FrameProcessor):
 
     The session opens on the first camera frame, because the gateway bills every second a
     session is open. It is reopened when the gateway closes it: after 30 seconds without a
-    frame, at the 10 minute session limit, or on a server restart. When the gateway refuses a
-    session for good, or stays unavailable past ``max_retries``, the processor pushes an
-    ``ErrorFrame`` and stops reading. Camera frames keep flowing.
+    frame, at the 10 minute session limit, or on a server restart. When the gateway asks for a
+    wait, for example because the plan's sessions are full or the model is starting up, the
+    processor waits and tries again. When the gateway refuses a session for good, or stays
+    unavailable past ``max_retries``, the processor pushes an ``ErrorFrame`` and stops reading.
+    Camera frames keep flowing.
 
     Example::
 
@@ -184,7 +186,8 @@ class VLMRunRealtimeProcessor(FrameProcessor):
             draw: Also push each frame with its result drawn on it.
             jpeg_quality: JPEG quality for frames sent to the gateway, 1 to 95.
             reply_timeout: Seconds to wait for a frame's reply before reopening the session.
-            max_retries: Failed attempts in a row before the processor gives up.
+            max_retries: Failed attempts in a row before the processor gives up. A model
+                that is starting up can ask for a wait of about 4 minutes per attempt.
             **kwargs: Additional arguments passed to ``FrameProcessor``.
         """
         super().__init__(**kwargs)
@@ -454,7 +457,7 @@ class VLMRunRealtimeProcessor(FrameProcessor):
             message = str(created.get("message") or created.get("error_type") or created)
             retry_after = created.get("retry_after")
             code = await _await_close(ws)
-            if code == _CLOSE_REFUSED or (retry_after or 0) > _MAX_RETRY_AFTER:
+            if code == _CLOSE_REFUSED:
                 raise _Refused(message)
             raise _TryLater(message, retry_after)
 
@@ -492,8 +495,9 @@ class VLMRunRealtimeProcessor(FrameProcessor):
 
 
 def _backoff(failures: int, retry_after: float | None) -> float:
+    """Seconds to wait before the next attempt. The gateway's own hint wins when it gives one."""
     if retry_after:
-        return float(retry_after)
+        return min(float(retry_after), _MAX_RETRY_AFTER)
     return min(0.5 * 2 ** (failures - 1), _MAX_BACKOFF)
 
 

@@ -37,8 +37,10 @@ class FakeGateway:
     reply_delay: float = 0.0
     # Connections, counted from the first, that are closed with 1013 before session.create.
     full_for: int = 0
-    # Answer session.create with this error and close with this code.
+    # Answer session.create with this (message, close code, retry_after) error.
     refuse: tuple[str, int, float | None] | None = None
+    # How many connections get that answer. The rest open normally.
+    refuse_for: int = 1_000_000
     # Per connection index: (results before closing, close code, close reason).
     close_after: dict[int, tuple[int, int, str]] = field(default_factory=dict)
     # Connections, by index, that never answer a frame.
@@ -66,7 +68,7 @@ class FakeGateway:
             return
         opening = json.loads(await ws.recv())
         self.openings.append(opening)
-        if self.refuse is not None:
+        if self.refuse is not None and index < self.refuse_for:
             message, code, retry_after = self.refuse
             await ws.send(
                 json.dumps({"type": "error", "message": message, "retry_after": retry_after})
@@ -135,7 +137,10 @@ async def gateway():
 
 @pytest.fixture(autouse=True)
 def fast_backoff(monkeypatch):
-    monkeypatch.setattr("pipecat_vlmrun.realtime._backoff", lambda failures, retry_after: 0.01)
+    from pipecat_vlmrun import realtime
+
+    monkeypatch.setitem(realtime.__dict__, "_real_backoff", realtime._backoff)
+    monkeypatch.setattr(realtime, "_backoff", lambda failures, retry_after: 0.01)
 
 
 def camera_frame(size=(64, 48), color=(10, 120, 200), source=None) -> InputImageRawFrame:

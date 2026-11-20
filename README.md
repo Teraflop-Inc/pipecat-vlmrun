@@ -204,6 +204,8 @@ it reads while the bot is running. The change takes effect on the next camera fr
   processor opens a new one on the next frame.
 - A plan holds a fixed number of sessions at once. When it is full, the processor retries
   with backoff, up to `max_retries`.
+- When a model is starting up, the gateway asks for a wait of about 4 minutes. The processor
+  waits and tries again, up to `max_retries`.
 - When the gateway refuses a session for good (unknown model, bad key, spend limit), or
   stays unavailable past `max_retries`, the processor pushes an `ErrorFrame` and stops
   reading. Camera frames keep flowing.
