@@ -254,7 +254,7 @@ uv run pytest -m live -s      # against the real gateway, needs VLMRUN_API_KEY, 
 
 ## Compatibility
 
-Tested with Pipecat v1.16.0 on Python 3.12.
+Tested with Pipecat v1.16.0 and v1.17.0, on Python 3.11 and 3.12.
 
 ## License
 
