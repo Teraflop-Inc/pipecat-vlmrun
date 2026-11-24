@@ -218,11 +218,11 @@ See [Realtime](https://docs.vlm.run/gateway/realtime) in the VLM Run docs for li
 git clone https://github.com/vlm-run/pipecat-vlmrun
 cd pipecat-vlmrun
 uv sync --extra examples
-cp .env.example .env   # then fill in the keys
+cp .env.example .env   # then add your VLM Run key
 ```
 
 **`examples/realtime-vision.py`** runs a realtime model on your camera and sends the video back
-with the result drawn on. It needs only a VLM Run key.
+with the result drawn on.
 
 ```bash
 uv run examples/realtime-vision.py
@@ -234,14 +234,6 @@ with `VLMRUN_REALTIME_MODEL`, for example:
 ```bash
 VLMRUN_REALTIME_MODEL=usyd-community/vitpose-plus-large uv run examples/realtime-vision.py
 VLMRUN_REALTIME_MODEL=facebook/sam3.1 VLMRUN_REALTIME_PROMPT=cup uv run examples/realtime-vision.py
-```
-
-**`examples/vision-chat.py`** is a voice bot that describes an image and then talks about it.
-It is Pipecat's own `vision-openai.py` example with the LLM swapped for `VLMRunLLMService`. It
-also needs `DEEPGRAM_API_KEY` and `CARTESIA_API_KEY` for speech.
-
-```bash
-uv run examples/vision-chat.py
 ```
 
 ## Tests

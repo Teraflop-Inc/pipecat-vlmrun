@@ -21,4 +21,4 @@ All notable changes to this project are documented here. The format follows
 - Sessions reopen after the gateway's idle and 10 minute closes, retry with backoff when a
   plan's sessions are full, and wait for a model that is starting up.
 - `annotate`: draws boxes, masks, keypoints, text lines and captions on a frame.
-- Examples: `realtime-vision.py` and `vision-chat.py`.
+- Example: `realtime-vision.py`.

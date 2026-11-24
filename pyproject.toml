@@ -30,7 +30,7 @@ dependencies = [
 
 [project.optional-dependencies]
 examples = [
-    "pipecat-ai[cartesia,deepgram,runner,silero,webrtc]>=1.16.0",
+    "pipecat-ai[runner,webrtc]>=1.16.0",
     "python-dotenv>=1.0.0",
 ]
 
